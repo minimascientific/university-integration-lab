@@ -16,6 +16,10 @@ runbook cover the common failure cases.
 **Stack:** Python 3.12 · PostgreSQL 16 · FastAPI · httpx · Pydantic · psycopg 3 · pytest ·
 Docker Compose · GitHub Actions · uv
 
+📊 **[Slide overview (PDF, 10 slides)](docs/admissions-pipeline-overview.pdf)**: the
+architecture, the safeguards (retries, quarantine, idempotent UPSERTs, run logging) and the
+data model, explained visually.
+
 ## Architecture
 
 ```mermaid
@@ -205,7 +209,7 @@ PostgreSQL 16 service container on every push.
 db/ddl/        schema (applied automatically on first `docker compose up`)
 db/seed/       synthetic programs
 db/queries/    UPSERTs, the promote transaction, report and troubleshooting queries
-docs/          runbook
+docs/          runbook and slide overview (PDF)
 src/integration_lab/
   mock_portal.py    mock REST API (FastAPI + Faker, deterministic)
   portal_client.py  HTTP client with timeout and retries
