@@ -32,4 +32,4 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # FastAPI's TestClient warns about a future httpx change; not our code.
-filterwarnings = ["ignore::DeprecationWarning:fastapi.testclient"]
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
