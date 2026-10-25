@@ -28,3 +28,8 @@ dev = [
     "pytest>=9.1.1",
     "ruff>=0.17.2",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# FastAPI's TestClient warns about a future httpx change; not our code.
+filterwarnings = ["ignore::DeprecationWarning:fastapi.testclient"]

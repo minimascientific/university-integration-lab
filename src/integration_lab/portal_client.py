@@ -20,16 +20,18 @@ def fetch_applications(
     backoff_seconds: float = 0.5,
     timeout_seconds: float = 5.0,
     logger: logging.Logger | logging.LoggerAdapter = log,
+    transport: httpx.BaseTransport | None = None,
 ) -> list[dict]:
     """GET /applications. Retries connection errors and 5xx responses with
     exponential backoff (0.5s, 1s, 2s); raises PortalUnavailable when exhausted.
     4xx responses are not retried: they mean our request is wrong.
+    `transport` lets tests swap in httpx.MockTransport instead of a live server.
     """
     url = f"{base_url.rstrip('/')}/applications"
     params = {"limit": limit, "scenario": scenario}
     last_error = ""
 
-    with httpx.Client(timeout=timeout_seconds) as client:
+    with httpx.Client(timeout=timeout_seconds, transport=transport) as client:
         for attempt in range(retries + 1):
             if attempt:
                 delay = backoff_seconds * 2 ** (attempt - 1)

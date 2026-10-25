@@ -18,6 +18,7 @@ import hashlib
 import json
 import logging
 
+import httpx
 import psycopg
 from psycopg.types.json import Jsonb
 
@@ -164,7 +165,12 @@ def promote_row_by_row(conn, run_id: int, clean: list[tuple[int, ApplicationIn]]
 
 
 def run_sync(
-    base_url: str, scenario: str, limit: int, force_row_by_row: bool = False
+    base_url: str,
+    scenario: str,
+    limit: int,
+    force_row_by_row: bool = False,
+    transport: httpx.BaseTransport | None = None,
+    backoff_seconds: float = 0.5,
 ) -> int:
     with db.connect() as conn:
         run_id = start_run(conn)
@@ -172,7 +178,12 @@ def run_sync(
         rlog.info("started (scenario=%s, limit=%d)", scenario, limit)
         try:
             records = fetch_applications(
-                base_url, scenario=scenario, limit=limit, logger=rlog
+                base_url,
+                scenario=scenario,
+                limit=limit,
+                logger=rlog,
+                transport=transport,
+                backoff_seconds=backoff_seconds,
             )
             rlog.info("fetched %d records", len(records))
 
