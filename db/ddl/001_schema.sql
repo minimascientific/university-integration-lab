@@ -1,8 +1,8 @@
 -- =====================================================================
--- University Application Integration Lab: DRAFT schema
+-- University Application Integration Lab: schema (reviewed)
 -- Fictional institution ("Summit Ridge University"); all data synthetic.
 -- Runs automatically on first `docker compose up` (empty volume only).
--- Lines marked "-- REVIEW:" are design decisions for you to confirm or change.
+-- Each "-- REVIEW:" question is followed by the Decision taken and Why.
 -- =====================================================================
 
 CREATE SCHEMA IF NOT EXISTS admissions;   -- clean, trusted business data
@@ -20,6 +20,8 @@ CREATE TABLE admissions.program (
 );
 -- REVIEW: Surrogate key (program_id) + UNIQUE natural key (program_code).
 --         Could program_code alone be the PK? What do you gain or lose?
+-- Decision: Keep surrogate key.
+-- Why: Program codes can change without breaking relationships
 
 -- ---------------------------------------------------------------------
 -- admissions.applicant: one row per person
@@ -31,16 +33,29 @@ CREATE TABLE admissions.applicant (
     last_name            TEXT NOT NULL,
     email                TEXT NOT NULL,
     date_of_birth        DATE,
+    source_updated_at    TIMESTAMPTZ NOT NULL,   -- portal's last-modified time
     created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT applicant_email_format CHECK (email LIKE '%_@_%')
 );
-CREATE UNIQUE INDEX applicant_email_lower_uq ON admissions.applicant (lower(email));
+CREATE INDEX applicant_email_lower_idx ON admissions.applicant (lower(email));
 -- REVIEW: Which key identifies a person for UPSERT: portal_applicant_id or email?
 --         Unique lower(email) blocks two portal IDs sharing one email. Is that a
 --         duplicate to quarantine, or legitimate (e.g. a shared family email)?
+-- Decision: use portal_applicant_id
+-- Why: The source system's identifier is more reliable than an email address
+-- Decision: The lower(email) index is NOT unique; shared emails are allowed.
+-- Why: A UNIQUE email index would contradict portal_applicant_id being the
+--      identity and make a shared family email fail the whole batch.
+--      Possible duplicates are found afterwards with
+--      troubleshoot_duplicate_candidates.sql.
+-- Decision: Applicants also carry source_updated_at and follow the same
+--           "only update if incoming is newer" rule as applications.
+-- Why: Otherwise an out-of-order record could overwrite newer contact details.
 -- REVIEW: updated_at has no trigger; your UPSERT must set it. Keep it that way?
-
+-- Decision: Keep explicit updated_at handling in the UPSERT rather than adding a trigger. Ensure the timestamp changes only when the record's data actually changes
+-- Why: we want updated_at to tell us when the applicant's information actually changed, not simply when our integration ran
+-- Since our pipeline controls updates, keeping this logic in the UPSERT makes it easier to understand and troubleshoot.
 -- ---------------------------------------------------------------------
 -- admissions.application: one row per application to a program/term
 -- ---------------------------------------------------------------------
@@ -66,13 +81,34 @@ CREATE TABLE admissions.application (
 );
 CREATE INDEX application_applicant_idx    ON admissions.application (applicant_id);
 CREATE INDEX application_program_term_idx ON admissions.application (program_id, entry_term);
+
 -- REVIEW: ON DELETE RESTRICT vs CASCADE: should deleting an applicant ever
 --         silently delete their applications?
--- REVIEW: status as a CHECK list vs a lookup table (admissions.application_status).
---         Which is easier to change mid-cycle? Which gives a nicer error?
+-- Decision: Keep RESTRICT.
+-- Why: Applications are important institutional records. RESTRICT prevents
+--      accidental deletion of application history. Any deletion should be
+--      deliberate and controlled.
+
+-- REVIEW: Status CHECK constraint vs lookup table (admissions.application_status).
+--         Which is easier to change mid-cycle? Which gives a clearer error?
+-- Decision: Keep CHECK for this project.
+-- Why: The status list is small and stable. A lookup table would provide
+--      more flexibility if statuses change frequently or need descriptions.
+
 -- REVIEW: source_updated_at lets an UPSERT ignore stale/out-of-order records
---         ("only update if incoming is newer"). Do you want that rule?
--- REVIEW: Indexes. Which queries in db/queries/ need them? Is (status) worth one?
+--         (only update if incoming data is newer). Do we want that rule?
+-- Decision: Yes, use source_updated_at to ignore stale records.
+-- Why: Prevent older API data from overwriting newer application information,
+--      maintaining accuracy when records arrive out of order.
+
+-- REVIEW: Indexes. Which queries in db/queries/ need them?
+--         Is an index on status worthwhile?
+-- Decision: Keep indexes on (applicant_id) and (program_id, entry_term).
+--           Do not add a status index for now.
+-- Why: The existing indexes support our expected lookup queries. A status
+--      index is unlikely to provide significant benefits for this project's
+--      small dataset and anticipated query patterns.
+-- ---------------------------------------------------------------------
 
 -- ---------------------------------------------------------------------
 -- integration.integration_run: one row per pipeline execution
@@ -115,12 +151,19 @@ CREATE TABLE integration.staging_application (
 );
 CREATE INDEX staging_unprocessed_idx
     ON integration.staging_application (run_id) WHERE processed_at IS NULL;
--- REVIEW: Where does validation live: Python (Pydantic) before promotion, SQL
---         constraints at promotion, or both? Staging is deliberately loose so
---         bad records can land here and be quarantined, not lost.
--- REVIEW: payload_hash can detect "same record, no change" cheaply. Should it be
---         UNIQUE per run (UNIQUE (run_id, payload_hash)) to drop exact duplicates?
+-- REVIEW: Where should validation happen?
+-- Decision: Both Python (Pydantic) and PostgreSQL constraints.
+-- Why: Python provides detailed validation errors, while database
+--      constraints provide a final layer of data integrity.
+--      Stage raw records first so invalid data can be quarantined
+--      rather than lost.
 
+-- REVIEW: Should payload_hash be UNIQUE per run?
+-- Decision: No. Keep the hash but don't add a UNIQUE constraint.
+-- Why: Preserve duplicate records in staging so they can be
+--      identified, investigated, and logged during processing.
+--      Use portal_application_id as the business identifier and
+--      payload_hash to help detect unchanged content.
 -- ---------------------------------------------------------------------
 -- integration.quarantine: records that failed validation, kept for triage
 -- ---------------------------------------------------------------------

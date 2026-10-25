@@ -3,12 +3,14 @@
 -- Purpose: insert a new applicant, or update an existing one, so running
 --          the same input twice leaves the table unchanged (idempotent).
 -- Inputs (psycopg named params): %(portal_applicant_id)s, %(first_name)s,
---          %(last_name)s, %(email)s, %(date_of_birth)s
+--          %(last_name)s, %(email)s, %(date_of_birth)s, %(source_updated_at)s
 -- Returns: applicant_id, plus whether the row was inserted or updated.
 -- Hints:
 --   * INSERT ... ON CONFLICT (portal_applicant_id) DO UPDATE SET col = EXCLUDED.col
 --   * Skip no-op updates: add WHERE (t.first_name, ...) IS DISTINCT FROM (EXCLUDED.first_name, ...)
+--   * Skip stale records too: AND EXCLUDED.source_updated_at > t.source_updated_at
 --   * Remember updated_at = now() (there is no trigger).
 --   * RETURNING applicant_id, (xmax = 0) AS inserted   -- look up what xmax means
---   * What happens if the email already belongs to a different applicant?
+--   * If the WHERE skips the update, RETURNING gives no row. How will Python
+--     tell "unchanged/stale" apart from "inserted" and "updated"?
 -- =====================================================================
