@@ -1,0 +1,14 @@
+-- =====================================================================
+-- upsert_applicant.sql  (YOU WRITE THIS)
+-- Purpose: insert a new applicant, or update an existing one, so running
+--          the same input twice leaves the table unchanged (idempotent).
+-- Inputs (psycopg named params): %(portal_applicant_id)s, %(first_name)s,
+--          %(last_name)s, %(email)s, %(date_of_birth)s
+-- Returns: applicant_id, plus whether the row was inserted or updated.
+-- Hints:
+--   * INSERT ... ON CONFLICT (portal_applicant_id) DO UPDATE SET col = EXCLUDED.col
+--   * Skip no-op updates: add WHERE (t.first_name, ...) IS DISTINCT FROM (EXCLUDED.first_name, ...)
+--   * Remember updated_at = now() (there is no trigger).
+--   * RETURNING applicant_id, (xmax = 0) AS inserted   -- look up what xmax means
+--   * What happens if the email already belongs to a different applicant?
+-- =====================================================================

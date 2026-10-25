@@ -1,0 +1,15 @@
+-- =====================================================================
+-- upsert_application.sql  (YOU WRITE THIS)
+-- Purpose: idempotently insert/update one application, keyed on
+--          portal_application_id, and ignore stale (older) source records.
+-- Inputs: %(portal_application_id)s, %(applicant_id)s, %(program_code)s,
+--         %(entry_term)s, %(status)s, %(submitted_at)s, %(decided_at)s,
+--         %(source_updated_at)s, %(run_id)s
+-- Returns: application_id and inserted/updated, or no row if skipped.
+-- Hints:
+--   * program_code -> program_id: INSERT ... SELECT ... FROM admissions.program WHERE program_code = ...
+--     (what happens if the code doesn't exist? zero rows inserted, or an error?)
+--   * ON CONFLICT (portal_application_id) DO UPDATE ...
+--     WHERE EXCLUDED.source_updated_at > admissions.application.source_updated_at
+--   * Set last_run_id and updated_at on update.
+-- =====================================================================

@@ -1,0 +1,11 @@
+-- =====================================================================
+-- troubleshoot_stuck_in_staging.sql  (YOU WRITE THIS)
+-- Purpose: find staged records never processed (processed_at IS NULL),
+--          e.g. after a crash mid-run, with how long they've been waiting.
+-- Inputs: optional %(older_than)s interval, e.g. '1 hour'
+-- Output: run_id, run status, staging_id, portal_application_id, age
+-- Hints:
+--   * JOIN integration.integration_run; now() - received_at AS age
+--   * Runs still 'running' long after they started are suspicious too.
+--   * Check EXPLAIN: does it use staging_unprocessed_idx?
+-- =====================================================================

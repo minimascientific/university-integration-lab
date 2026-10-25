@@ -1,0 +1,19 @@
+-- =====================================================================
+-- promote_staging_batch.sql  (YOU WRITE THIS: the transaction)
+-- Purpose: for one run, move valid staged records into admissions.*,
+--          quarantine invalid ones, mark staging rows processed, and update
+--          the run's counts and status, all-or-nothing.
+-- Inputs: %(run_id)s
+-- Steps to think through:
+--   1. BEGIN;
+--   2. Quarantine rows that fail checks (unknown program_code, bad status,
+--      missing portal_application_id, ...): INSERT INTO integration.quarantine ... SELECT ...
+--   3. Upsert applicants, then applications, from the remaining rows
+--      (payload->>'field' extracts JSONB text).
+--   4. UPDATE integration.staging_application SET processed_at = now() WHERE run_id = ...
+--   5. UPDATE integration.integration_run SET counts, status, finished_at.
+--   6. COMMIT;  (and what should happen on error? ROLLBACK, then mark run 'failed')
+-- Hints: data-modifying CTEs (WITH ins AS (INSERT ... RETURNING ...)) can
+--        give you counts; consider SAVEPOINT if one bad row shouldn't sink the batch.
+-- Note: you may decide some of this lives in Python instead; that's a valid design.
+-- =====================================================================

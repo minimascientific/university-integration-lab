@@ -1,0 +1,12 @@
+-- =====================================================================
+-- troubleshoot_last_run_failures.sql  (YOU WRITE THIS)
+-- Purpose: "The nightly run looked wrong. What happened?" Show the most
+--          recent run's status, duration, counts and error_message, then its
+--          unresolved quarantine rows grouped by reason_code.
+-- Inputs: none (latest run), or optionally %(run_id)s
+-- Hints:
+--   * ORDER BY started_at DESC LIMIT 1, or a CTE named latest_run
+--   * finished_at - started_at gives an interval
+--   * JOIN integration.quarantine USING (run_id); GROUP BY reason_code;
+--     include one example payload per reason (min(), or DISTINCT ON).
+-- =====================================================================

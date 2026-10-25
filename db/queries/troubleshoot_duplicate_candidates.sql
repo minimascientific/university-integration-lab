@@ -1,0 +1,12 @@
+-- =====================================================================
+-- troubleshoot_duplicate_candidates.sql  (YOU WRITE THIS)
+-- Purpose: find likely duplicate people the unique keys didn't catch,
+--          e.g. same last_name + date_of_birth but different portal IDs,
+--          or same portal_application_id staged multiple times in one run.
+-- Inputs: none
+-- Hints:
+--   * GROUP BY ... HAVING COUNT(*) > 1, with string_agg(portal_applicant_id, ', ')
+--   * Or a self-join: a JOIN b ON ... AND a.applicant_id < b.applicant_id
+--   * Normalise before comparing: lower(trim(email)), lower(last_name)
+--   * Window function alternative: COUNT(*) OVER (PARTITION BY ...)
+-- =====================================================================

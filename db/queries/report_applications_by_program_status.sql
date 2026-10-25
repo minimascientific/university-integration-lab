@@ -1,0 +1,12 @@
+-- =====================================================================
+-- report_applications_by_program_status.sql  (YOU WRITE THIS)
+-- Purpose: count applications per program and status for a given term,
+--          including programs with zero applications.
+-- Inputs: %(entry_term)s   e.g. '2027FA'
+-- Output columns: program_code, program_name, status, application_count
+-- Hints:
+--   * admissions.program LEFT JOIN admissions.application ON ... AND entry_term = ...
+--     (why does the term filter belong in ON, not WHERE, for a LEFT JOIN?)
+--   * GROUP BY program_code, program_name, status; COUNT(application_id) not COUNT(*)
+--   * Bonus: one row per program with FILTER (WHERE status = 'admitted') columns.
+-- =====================================================================
